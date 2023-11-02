@@ -1,4 +1,4 @@
-﻿using Renci.SshNet.Common;
+﻿using System.Numerics;
 
 namespace Renci.SshNet.Security
 {
@@ -10,7 +10,7 @@ namespace Renci.SshNet.Security
         /// <summary>
         /// Defined in https://tools.ietf.org/html/rfc2409#section-6.2.
         /// </summary>
-        private static readonly byte[] SecondOkleyGroupReversed =
+        private static readonly BigInteger SecondOkleyGroupReversed = new BigInteger(new byte[]
             {
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x68, 0xaa, 0xac, 0x8a,
                 0x5a, 0x8e, 0x72, 0x15, 0x10, 0x05, 0xfa, 0x98, 0x18, 0x26, 0xd2, 0x15,
@@ -35,7 +35,14 @@ namespace Renci.SshNet.Security
                 0x34, 0xc2, 0x68, 0x21, 0xa2, 0xda, 0x0f, 0xc9, 0xff, 0xff, 0xff, 0xff,
                 0xff, 0xff, 0xff, 0xff,
                 0x00
-            };
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+            // Resolve to the ReadOnlySpan<byte> overload to take advantage of static assembly data optimisation.
+            },
+            isUnsigned: false,
+            isBigEndian: false);
+#else
+            });
+#endif
 
         /// <summary>
         /// Gets algorithm name.
@@ -55,7 +62,7 @@ namespace Renci.SshNet.Security
         {
             get
             {
-                return new BigInteger(SecondOkleyGroupReversed);
+                return SecondOkleyGroupReversed;
             }
         }
     }

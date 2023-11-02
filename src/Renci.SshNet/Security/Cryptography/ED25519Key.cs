@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 using Renci.SshNet.Common;
 using Renci.SshNet.Security.Chaos.NaCl;
@@ -91,7 +92,7 @@ namespace Renci.SshNet.Security
                 throw new ArgumentException($"Invalid Ed25519 public key data ({publicKeyData.Name}, {publicKeyData.Keys.Length}).", nameof(publicKeyData));
             }
 
-            PublicKey = publicKeyData.Keys[0].ToByteArray().Reverse().TrimLeadingZeros().Pad(Ed25519.PublicKeySizeInBytes);
+            PublicKey = publicKeyData.Keys[0].ToByteArray(isBigEndian: true).TrimLeadingZeros().Pad(Ed25519.PublicKeySizeInBytes);
             PrivateKey = new byte[Ed25519.ExpandedPrivateKeySizeInBytes];
         }
 

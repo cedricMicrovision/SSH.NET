@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 
 using Renci.SshNet.Common;
@@ -37,7 +38,7 @@ namespace Renci.SshNet.Security
                 foreach (var key in Keys)
                 {
                     capacity += 4; // Key length
-                    capacity += key.BitLength / 8; // Key
+                    capacity += (int)(key.GetBitLength() / 8); // Key
                 }
 
                 return capacity;

@@ -1,5 +1,8 @@
 ﻿using System;
-using Renci.SshNet.Common;
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+using System.Diagnostics;
+#endif
+using System.Numerics;
 
 namespace Renci.SshNet.Messages.Transport
 {
@@ -61,13 +64,30 @@ namespace Renci.SshNet.Messages.Transport
         /// </summary>
         public KeyExchangeEcdhInitMessage(BigInteger d, BigInteger q)
         {
-            var dBytes = d.ToByteArray().Reverse();
-            var qBytes = q.ToByteArray().Reverse();
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+            var dataLength = 1 + d.GetByteCount() + q.GetByteCount();
 
-            var data = new byte[dBytes.Length + qBytes.Length + 1];
+            var data = new byte[dataLength];
+
+            data[0] = 0x04;
+
+            bool written;
+
+            written = d.TryWriteBytes(data.AsSpan(1), out var bytesWritten, isBigEndian: true);
+            Debug.Assert(written && bytesWritten == d.GetByteCount());
+
+            written = q.TryWriteBytes(data.AsSpan(1 + bytesWritten), out bytesWritten, isBigEndian: true);
+            Debug.Assert(written && bytesWritten == q.GetByteCount());
+#else
+            var dBytes = d.ToByteArray(isBigEndian: true);
+            var qBytes = q.ToByteArray(isBigEndian: true);
+
+            var data = new byte[1 + dBytes.Length + qBytes.Length];
             data[0] = 0x04;
             Buffer.BlockCopy(dBytes, 0, data, 1, dBytes.Length);
             Buffer.BlockCopy(qBytes, 0, data, dBytes.Length + 1, qBytes.Length);
+#endif
+
             QC = data;
         }
 

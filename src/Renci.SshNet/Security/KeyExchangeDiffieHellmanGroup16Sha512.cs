@@ -1,4 +1,4 @@
-﻿using Renci.SshNet.Common;
+﻿using System.Numerics;
 
 namespace Renci.SshNet.Security
 {
@@ -10,7 +10,7 @@ namespace Renci.SshNet.Security
         /// <summary>
         /// Defined in https://tools.ietf.org/html/rfc3526#section-5.
         /// </summary>
-        private static readonly byte[] MoreModularExponentialGroup16Reversed =
+        private static readonly BigInteger MoreModularExponentialGroup16Reversed = new BigInteger(new byte[]
             {
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x99, 0x31, 0x06, 0x34, 0xc9, 0x35, 0xf4, 0x4d,
                 0x8f, 0xc0, 0xa6, 0x90, 0xdc, 0xb7, 0xff, 0x86, 0xc1, 0xdd, 0x8f, 0x8d, 0x98, 0xea, 0xb4, 0x93,
@@ -45,13 +45,20 @@ namespace Renci.SshNet.Security
                 0x74, 0xcc, 0x67, 0x8a, 0x08, 0x4e, 0x02, 0x29, 0xd1, 0x1c, 0xdc, 0x80, 0x8b, 0x62, 0xc6, 0xc4,
                 0x34, 0xc2, 0x68, 0x21, 0xa2, 0xda, 0x0f, 0xc9, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0x00
-            };
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+            // Resolve to the ReadOnlySpan<byte> overload to take advantage of static assembly data optimisation.
+            },
+            isUnsigned: false,
+            isBigEndian: false);
+#else
+            });
+#endif
 
         public override BigInteger GroupPrime
         {
             get
             {
-                return new BigInteger(MoreModularExponentialGroup16Reversed);
+                return MoreModularExponentialGroup16Reversed;
             }
         }
 

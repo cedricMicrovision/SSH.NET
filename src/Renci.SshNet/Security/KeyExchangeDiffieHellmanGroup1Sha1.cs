@@ -1,4 +1,4 @@
-﻿using Renci.SshNet.Common;
+﻿using System.Numerics;
 
 namespace Renci.SshNet.Security
 {
@@ -7,7 +7,7 @@ namespace Renci.SshNet.Security
     /// </summary>
     internal sealed class KeyExchangeDiffieHellmanGroup1Sha1 : KeyExchangeDiffieHellmanGroupSha1
     {
-        private static readonly byte[] SecondOkleyGroupReversed =
+        private static readonly BigInteger SecondOkleyGroupReversed = new BigInteger(new byte[]
             {
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x81, 0x53, 0xe6, 0xec,
                 0x51, 0x66, 0x28, 0x49, 0xe6, 0x1f, 0x4b, 0x7c, 0x11, 0x24, 0x9f, 0xae,
@@ -21,7 +21,14 @@ namespace Renci.SshNet.Security
                 0x8b, 0x62, 0xc6, 0xc4, 0x34, 0xc2, 0x68, 0x21, 0xa2, 0xda, 0x0f, 0xc9,
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                 0x00
-            };
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+            // Resolve to the ReadOnlySpan<byte> overload to take advantage of static assembly data optimisation.
+            },
+            isUnsigned: false,
+            isBigEndian: false);
+#else
+            });
+#endif
 
         /// <summary>
         /// Gets algorithm name.
@@ -41,7 +48,7 @@ namespace Renci.SshNet.Security
         {
             get
             {
-                return new BigInteger(SecondOkleyGroupReversed);
+                return SecondOkleyGroupReversed;
             }
         }
     }

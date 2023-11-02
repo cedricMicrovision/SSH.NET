@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace Renci.SshNet.Common
 {
@@ -95,7 +96,11 @@ namespace Renci.SshNet.Common
 
             var data = ReadBytes(length);
 
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+            return new BigInteger(data, isBigEndian: true);
+#else
             return new BigInteger(data.Reverse());
+#endif
         }
 
         /// <summary>
@@ -211,7 +216,7 @@ namespace Renci.SshNet.Common
         /// <param name="data">BigInteger data to write.</param>
         public void Write(BigInteger data)
         {
-            var bytes = data.ToByteArray().Reverse();
+            var bytes = data.ToByteArray(isBigEndian: true);
             _data.Add(Integer);
             var length = GetLength(bytes.Length);
             WriteBytes(length);

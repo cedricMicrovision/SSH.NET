@@ -50,10 +50,7 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers.Modes
 
             _ = Cipher.EncryptBlock(IV, 0, IV.Length, _ivOutput, 0);
 
-            for (var i = 0; i < _blockSize; i++)
-            {
-                outputBuffer[outputOffset + i] = (byte)(_ivOutput[i] ^ inputBuffer[inputOffset + i]);
-            }
+            Xor(_blockSize, outputBuffer, outputOffset, _ivOutput, 0, inputBuffer, inputOffset);
 
             var j = IV.Length;
             while (--j >= 0 && ++IV[j] == 0)

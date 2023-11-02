@@ -94,10 +94,7 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers.Modes
             Buffer.BlockCopy(IV, _blockSize, IV, 0, IV.Length - _blockSize);
             Buffer.BlockCopy(inputBuffer, inputOffset, IV, IV.Length - _blockSize, _blockSize);
 
-            for (var i = 0; i < _blockSize; i++)
-            {
-                outputBuffer[outputOffset + i] = (byte)(_ivOutput[i] ^ inputBuffer[inputOffset + i]);
-            }
+            Xor(_blockSize, outputBuffer, outputOffset, _ivOutput, 0, inputBuffer, inputOffset);
 
             return _blockSize;
         }

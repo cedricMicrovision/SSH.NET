@@ -1,4 +1,13 @@
-﻿using Renci.SshNet.Common;
+﻿using System.Diagnostics;
+#if NET
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+#endif
+#if NET7_0_OR_GREATER
+using System.Runtime.Intrinsics;
+#endif
+
+using Renci.SshNet.Common;
 
 namespace Renci.SshNet.Security.Cryptography.Ciphers
 {
@@ -71,5 +80,76 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers
         /// The number of bytes decrypted.
         /// </returns>
         public abstract int DecryptBlock(byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset);
+
+#pragma warning disable IDE0007 // Use implicit type
+#pragma warning disable SA1137 // Elements should have the same indentation
+        private protected static void Xor(
+            int blockSize,
+            byte[] outputBuffer,
+            int outputOffset,
+            byte[] leftBuffer,
+            int leftOffset,
+            byte[] rightBuffer,
+            int rightOffset)
+        {
+            Debug.Assert(blockSize > 0);
+            Debug.Assert((uint)leftOffset < leftBuffer.Length);
+            Debug.Assert((uint)(leftOffset + blockSize) <= leftBuffer.Length);
+
+            Debug.Assert((uint)rightOffset < rightBuffer.Length);
+            Debug.Assert((uint)(rightOffset + blockSize) <= rightBuffer.Length);
+
+#if NET
+            if (blockSize == 16)
+            {
+#if NET7_0_OR_GREATER
+
+                Vector128<byte> left = Vector128.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(leftBuffer), (nuint) leftOffset);
+                Vector128<byte> right = Vector128.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(rightBuffer), (nuint) rightOffset);
+                ref byte output = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(outputBuffer), (nuint) outputOffset);
+
+                (left ^ right).StoreUnsafe(ref output);
+
+#else // !NET7_0_OR_GREATER
+
+                ref ulong left = ref Unsafe.Add(ref Unsafe.As<byte, ulong>(ref MemoryMarshal.GetArrayDataReference(leftBuffer)), (nuint) leftOffset);
+                ref ulong right = ref Unsafe.Add(ref Unsafe.As<byte, ulong>(ref MemoryMarshal.GetArrayDataReference(rightBuffer)), (nuint) rightOffset);
+                ref ulong output = ref Unsafe.Add(ref Unsafe.As<byte, ulong>(ref MemoryMarshal.GetArrayDataReference(outputBuffer)), (nuint) outputOffset);
+
+                output = left ^ right;
+
+                left = Unsafe.Add(ref left, 8);
+                right = Unsafe.Add(ref right, 8);
+                output = Unsafe.Add(ref output, 8);
+
+                output = left ^ right;
+
+#endif // !NET7_0_OR_GREATER
+            }
+            else if (blockSize == 8)
+            {
+                ref ulong left = ref Unsafe.Add(ref Unsafe.As<byte, ulong>(ref MemoryMarshal.GetArrayDataReference(leftBuffer)), (nuint) leftOffset);
+                ref ulong right = ref Unsafe.Add(ref Unsafe.As<byte, ulong>(ref MemoryMarshal.GetArrayDataReference(rightBuffer)), (nuint) rightOffset);
+                ref ulong output = ref Unsafe.Add(ref Unsafe.As<byte, ulong>(ref MemoryMarshal.GetArrayDataReference(outputBuffer)), (nuint) outputOffset);
+
+                output = left ^ right;
+            }
+            else
+            {
+#endif // NET
+
+                for (var i = 0; i < blockSize; i++)
+                {
+                    outputBuffer[outputOffset + i] = (byte) (leftBuffer[leftOffset + i] ^ rightBuffer[rightOffset + i]);
+                }
+
+#if NET
+            }
+#endif // NET
+
+        }
+#pragma warning restore SA1137 // Elements should have the same indentation
+#pragma warning restore IDE0007 // Use implicit type
+
     }
 }

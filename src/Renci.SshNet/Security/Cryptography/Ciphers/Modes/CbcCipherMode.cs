@@ -45,10 +45,7 @@ namespace Renci.SshNet.Security.Cryptography.Ciphers.Modes
                 throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "inputCount must be {0}.", _blockSize));
             }
 
-            for (var i = 0; i < _blockSize; i++)
-            {
-                IV[i] ^= inputBuffer[inputOffset + i];
-            }
+            Xor(_blockSize, IV, 0, IV, 0, inputBuffer, inputOffset);
 
             _ = Cipher.EncryptBlock(IV, 0, inputCount, outputBuffer, outputOffset);
 

@@ -676,9 +676,10 @@ dotnet_code_quality.CA1828.api_surface = all
 dotnet_diagnostic.CA1852.severity = none
 
 # CA1859: Change return type for improved performance
+# https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1859
 #
 # By default, this diagnostic is only reported for private members.
-dotnet_code_quality.CA1859.api_surface = all
+dotnet_code_quality.CA1859.api_surface = private, internal
 
 # CA2208: Instantiate argument exceptions correctly
 # https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca2208

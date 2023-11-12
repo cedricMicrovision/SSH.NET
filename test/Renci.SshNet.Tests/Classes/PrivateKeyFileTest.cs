@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Renci.SshNet.Common;
+using Renci.SshNet.Security;
 using Renci.SshNet.Tests.Common;
 using System;
 using System.IO;
@@ -31,88 +32,32 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         /// <summary>
-        /// A test for <see cref="PrivateKeyFile(string)"/> ctor.
-        ///</summary>
-        [WorkItem(703), TestMethod]
-        public void ConstructorWithFileNameShouldThrowArgumentNullExceptionWhenFileNameIsEmpty()
-        {
-            var fileName = string.Empty;
-            try
-            {
-                _ = new PrivateKeyFile(fileName);
-                Assert.Fail();
-            }
-            catch (ArgumentNullException ex)
-            {
-                Assert.IsNull(ex.InnerException);
-                Assert.AreEqual("fileName", ex.ParamName);
-            }
-        }
-
-        /// <summary>
-        /// A test for <see cref="PrivateKeyFile(string)"/> ctor.
+        /// A test for <see cref="PrivateKeyFile(string, string, string)"/> ctor.
         ///</summary>
         [WorkItem(703), TestMethod]
         public void ConstructorWithFileNameShouldThrowArgumentNullExceptionWhenFileNameIsNull()
         {
-            var fileName = string.Empty;
             try
             {
-                _ = new PrivateKeyFile(fileName);
+                _ = new PrivateKeyFile(privateKeyFilePath: null);
                 Assert.Fail();
             }
             catch (ArgumentNullException ex)
             {
                 Assert.IsNull(ex.InnerException);
-                Assert.AreEqual("fileName", ex.ParamName);
+                Assert.AreEqual("privateKeyFilePath", ex.ParamName);
             }
         }
 
         /// <summary>
-        /// A test for <see cref="PrivateKeyFile(string, string)"/> ctor.
+        /// A test for <see cref="PrivateKeyFile(Stream, string, Stream)"/> ctor.
         ///</summary>
-        [WorkItem(703), TestMethod]
-        public void ConstructorWithFileNameAndPassphraseShouldThrowArgumentNullExceptionWhenFileNameIsEmpty()
-        {
-            var fileName = string.Empty;
-            try
-            {
-                _ = new PrivateKeyFile(fileName, "12345");
-                Assert.Fail();
-            }
-            catch (ArgumentNullException ex)
-            {
-                Assert.IsNull(ex.InnerException);
-                Assert.AreEqual("fileName", ex.ParamName);
-            }
-        }
-
-        /// <summary>
-        /// A test for <see cref="PrivateKeyFile(string, string)"/> ctor.
-        ///</summary>
-        [WorkItem(703), TestMethod]
-        public void ConstructorWithFileNameAndPassphraseShouldThrowArgumentNullExceptionWhenFileNameIsNull()
-        {
-            var fileName = string.Empty;
-            try
-            {
-                _ = new PrivateKeyFile(fileName, "12345");
-                Assert.Fail();
-            }
-            catch (ArgumentNullException ex)
-            {
-                Assert.IsNull(ex.InnerException);
-                Assert.AreEqual("fileName", ex.ParamName);
-            }
-        }
-
         [WorkItem(703), TestMethod]
         public void ConstructorWithPrivateKeyShouldThrowArgumentNullExceptionWhenPrivateKeyIsNull()
         {
-            Stream privateKey = null;
             try
             {
-                _ = new PrivateKeyFile(privateKey);
+                _ = new PrivateKeyFile(privateKey: null);
                 Assert.Fail();
             }
             catch (ArgumentNullException ex)
@@ -122,19 +67,21 @@ namespace Renci.SshNet.Tests.Classes
             }
         }
 
-        [WorkItem(703), TestMethod]
-        public void ConstructorWithPrivateKeyAndPassphraseShouldThrowArgumentNullExceptionWhenPrivateKeyIsNull()
+        /// <summary>
+        /// A test for <see cref="PrivateKeyFile(Key)"/> ctor.
+        ///</summary>
+        [TestMethod]
+        public void ConstructorWithKeyShouldThrowArgumentNullExceptionWhenKeyIsNull()
         {
-            Stream privateKey = null;
             try
             {
-                _ = new PrivateKeyFile(privateKey, "12345");
+                _ = new PrivateKeyFile(key: null);
                 Assert.Fail();
             }
             catch (ArgumentNullException ex)
             {
                 Assert.IsNull(ex.InnerException);
-                Assert.AreEqual("privateKey", ex.ParamName);
+                Assert.AreEqual("key", ex.ParamName);
             }
         }
 
@@ -281,6 +228,23 @@ namespace Renci.SshNet.Tests.Classes
         [TestMethod]
         [Owner("olegkap")]
         [TestCategory("PrivateKey")]
+        public void XXX()
+        {
+            PrivateKeyFile p;
+
+            using (var privateKey = GetData("Key.RSA.txt"))
+            using (var certificate = GetData("Key.OPENSSH.ED25519-cert.pub"))
+            {
+                p = new PrivateKeyFile(privateKey, certificate: certificate);
+            }
+
+            var certSignatureData = new KeyHostAlgorithm.SignatureKeyData();
+            certSignatureData.Load(p.Certificate.Signature);
+        }
+
+        [TestMethod]
+        [Owner("olegkap")]
+        [TestCategory("PrivateKey")]
         public void Test_PrivateKey_RSA_AES_128_CBC()
         {
             using (var stream = GetData("Key.RSA.Encrypted.Aes.128.CBC.12345.txt"))
@@ -401,9 +365,6 @@ namespace Renci.SshNet.Tests.Classes
             }
         }
 
-        /// <summary>
-        /// A test for <see cref="PrivateKeyFile(Stream, string)"/> ctor.
-        ///</summary>
         [TestMethod()]
         public void ConstructorWithStreamAndPassphrase()
         {
@@ -414,9 +375,6 @@ namespace Renci.SshNet.Tests.Classes
             }
         }
 
-        /// <summary>
-        /// A test for <see cref="PrivateKeyFile(string, string)"/> ctor.
-        ///</summary>
         [TestMethod()]
         public void ConstructorWithFileNameAndPassphrase()
         {
@@ -434,9 +392,6 @@ namespace Renci.SshNet.Tests.Classes
             }
         }
 
-        /// <summary>
-        /// A test for <see cref="PrivateKeyFile(string, string)"/> ctor.
-        ///</summary>
         [TestMethod()]
         public void ConstructorWithFileNameAndPassphraseShouldThrowSshPassPhraseNullOrEmptyExceptionWhenNeededPassphraseIsEmpty()
         {
@@ -459,9 +414,6 @@ namespace Renci.SshNet.Tests.Classes
             }
         }
 
-        /// <summary>
-        /// A test for <see cref="PrivateKeyFile(string, string)"/> ctor.
-        ///</summary>
         [TestMethod()]
         public void ConstructorWithFileNameAndPassphraseShouldThrowSshPassPhraseNullOrEmptyExceptionWhenNeededPassphraseIsNull()
         {
@@ -484,9 +436,6 @@ namespace Renci.SshNet.Tests.Classes
             }
         }
 
-        /// <summary>
-        /// A test for <see cref="PrivateKeyFile(string)"/> ctor.
-        ///</summary>
         [TestMethod()]
         public void ConstructorWithFileName()
         {
@@ -499,9 +448,6 @@ namespace Renci.SshNet.Tests.Classes
             TestRsaKeyFile(privateKeyFile);
         }
 
-        /// <summary>
-        /// A test for <see cref="PrivateKeyFile(Stream)"/> ctor.
-        ///</summary>
         [TestMethod()]
         public void ConstructorWithStream()
         {

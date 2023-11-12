@@ -144,6 +144,18 @@ namespace Renci.SshNet.IntegrationTests
             return this;
         }
 
+        public RemoteSshdConfig ClearTrustedUserCAKeys()
+        {
+            _config.TrustedUserCAKeys.Clear();
+            return this;
+        }
+
+        public RemoteSshdConfig AddTrustedUserCAKey(string filePath) // TODO KeyFile?
+        {
+            _config.TrustedUserCAKeys.Add(filePath);
+            return this;
+        }
+
         public RemoteSshdConfig ClearHostKeyAlgorithms()
         {
             _config.HostKeyAlgorithms.Clear();

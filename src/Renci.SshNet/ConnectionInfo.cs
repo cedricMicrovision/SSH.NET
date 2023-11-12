@@ -422,19 +422,27 @@ namespace Renci.SshNet
                 };
 #pragma warning restore IDE0200 // Remove unnecessary lambda expression
 
+#pragma warning disable SA1107 // Code should not contain multiple statements on one line
             HostKeyAlgorithms = new Dictionary<string, Func<byte[], KeyHostAlgorithm>>
                 {
                     { "ssh-ed25519", data => new KeyHostAlgorithm("ssh-ed25519", new ED25519Key(new SshKeyData(data))) },
                     { "ecdsa-sha2-nistp256", data => new KeyHostAlgorithm("ecdsa-sha2-nistp256", new EcdsaKey(new SshKeyData(data))) },
                     { "ecdsa-sha2-nistp384", data => new KeyHostAlgorithm("ecdsa-sha2-nistp384", new EcdsaKey(new SshKeyData(data))) },
                     { "ecdsa-sha2-nistp521", data => new KeyHostAlgorithm("ecdsa-sha2-nistp521", new EcdsaKey(new SshKeyData(data))) },
-#pragma warning disable SA1107 // Code should not contain multiple statements on one line
                     { "rsa-sha2-512", data => { var key = new RsaKey(new SshKeyData(data)); return new KeyHostAlgorithm("rsa-sha2-512", key, new RsaDigitalSignature(key, HashAlgorithmName.SHA512)); } },
                     { "rsa-sha2-256", data => { var key = new RsaKey(new SshKeyData(data)); return new KeyHostAlgorithm("rsa-sha2-256", key, new RsaDigitalSignature(key, HashAlgorithmName.SHA256)); } },
-#pragma warning restore SA1107 // Code should not contain multiple statements on one line
                     { "ssh-rsa", data => new KeyHostAlgorithm("ssh-rsa", new RsaKey(new SshKeyData(data))) },
                     { "ssh-dss", data => new KeyHostAlgorithm("ssh-dss", new DsaKey(new SshKeyData(data))) },
+                    { "ssh-ed25519-cert-v01@openssh.com", data => { var cert = new Certificate(data); return new CertificateHostAlgorithm("ssh-ed25519-cert-v01@openssh.com", cert, this); } },
+                    { "ecdsa-sha2-nistp256-cert-v01@openssh.com", data => { var cert = new Certificate(data); return new CertificateHostAlgorithm("ecdsa-sha2-nistp256-cert-v01@openssh.com", cert, this); } },
+                    { "ecdsa-sha2-nistp384-cert-v01@openssh.com", data => { var cert = new Certificate(data); return new CertificateHostAlgorithm("ecdsa-sha2-nistp384-cert-v01@openssh.com", cert, this); } },
+                    { "ecdsa-sha2-nistp521-cert-v01@openssh.com", data => { var cert = new Certificate(data); return new CertificateHostAlgorithm("ecdsa-sha2-nistp512-cert-v01@openssh.com", cert, this); } },
+                    { "rsa-sha2-512-cert-v01@openssh.com", data => { var cert = new Certificate(data); return new CertificateHostAlgorithm("rsa-sha2-512-cert-v01@openssh.com", cert, new RsaDigitalSignature((RsaKey)cert.Key, HashAlgorithmName.SHA512), this); } },
+                    { "rsa-sha2-256-cert-v01@openssh.com", data => { var cert = new Certificate(data); return new CertificateHostAlgorithm("rsa-sha2-256-cert-v01@openssh.com", cert, new RsaDigitalSignature((RsaKey)cert.Key, HashAlgorithmName.SHA256), this); } },
+                    { "ssh-rsa-cert-v01@openssh.com", data => { var cert = new Certificate(data); return new CertificateHostAlgorithm("ssh-rsa-cert-v01@openssh.com", cert, this); } },
+                    { "ssh-dss-cert-v01@openssh.com", data => { var cert = new Certificate(data); return new CertificateHostAlgorithm("ssh-dss-cert-v01@openssh.com", cert, this); } },
                 };
+#pragma warning restore SA1107 // Code should not contain multiple statements on one line
 
             CompressionAlgorithms = new Dictionary<string, Func<Compressor>>
                 {

@@ -70,14 +70,20 @@ namespace Renci.SshNet.IntegrationTests
             DoTest(PublicKeyAlgorithm.SshEd25519, "Data.Key.OPENSSH.ED25519.Encrypted.txt", "12345");
         }
 
-        private void DoTest(PublicKeyAlgorithm publicKeyAlgorithm, string keyResource, string passPhrase = null)
+        [TestMethod]
+        public void Ed25519CertRsa()
+        {
+            DoTest(PublicKeyAlgorithm.SshEd25519CertV01OpenSSH, "data.Key.OPENSSH.ED25519.txt", "data.Key.OPENSSH.ED25519-cert.OPENSSH.RSA.pub");
+        }
+
+        private void DoTest(PublicKeyAlgorithm publicKeyAlgorithm, string keyResource, string passPhrase = null, string certificateResource = null)
         {
             _remoteSshdConfig.ClearPublicKeyAcceptedAlgorithms()
                              .AddPublicKeyAcceptedAlgorithm(publicKeyAlgorithm)
                              .Update()
                              .Restart();
 
-            var connectionInfo = _connectionInfoFactory.Create(CreatePrivateKeyAuthenticationMethod(keyResource, passPhrase));
+            var connectionInfo = _connectionInfoFactory.Create(CreatePrivateKeyAuthenticationMethod(keyResource, passPhrase, certificateResource));
 
             using (var client = new SshClient(connectionInfo))
             {
@@ -85,12 +91,26 @@ namespace Renci.SshNet.IntegrationTests
             }
         }
 
-        private static PrivateKeyAuthenticationMethod CreatePrivateKeyAuthenticationMethod(string keyResource, string passPhrase)
+        private static PrivateKeyAuthenticationMethod CreatePrivateKeyAuthenticationMethod(string keyResource, string passPhrase, string certificateResource)
         {
-            using (var stream = GetData(keyResource))
+            PrivateKeyFile privateKey;
+
+            using (var keyStream = GetData(keyResource))
             {
-                return new PrivateKeyAuthenticationMethod(Users.Regular.UserName, new PrivateKeyFile(stream, passPhrase));
+                if (certificateResource is not null)
+                {
+                    using (var certificateStream = GetData(certificateResource))
+                    {
+                        privateKey = new PrivateKeyFile(keyStream, passPhrase, certificateStream);
+                    }
+                }
+                else
+                {
+                    privateKey = new PrivateKeyFile(keyStream, passPhrase);
+                }
             }
+
+            return new PrivateKeyAuthenticationMethod(Users.Regular.UserName, privateKey);
         }
     }
 }

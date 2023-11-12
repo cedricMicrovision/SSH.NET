@@ -80,17 +80,14 @@ namespace Renci.SshNet.Security
         /// Verifies the signature.
         /// </summary>
         /// <param name="data">The data to verify the signature against.</param>
-        /// <param name="signature">The encoded signature data.</param>
+        /// <param name="signature">The signature blob.</param>
         /// <returns>
         /// <see langword="true"/> if <paramref name="signature"/> is the result of signing <paramref name="data"/>
         /// with the corresponding private key to <see cref="Key"/>.
         /// </returns>
         public override bool VerifySignature(byte[] data, byte[] signature)
         {
-            var signatureData = new SignatureKeyData();
-            signatureData.Load(signature);
-
-            return DigitalSignature.Verify(data, signatureData.Signature);
+            return DigitalSignature.Verify(data, signature);
         }
 
         internal sealed class SignatureKeyData : SshData

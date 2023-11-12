@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 
 using Renci.SshNet.Abstractions;
 using Renci.SshNet.Security;
@@ -84,6 +85,12 @@ namespace Renci.SshNet.Common
         public int KeyLength { get; private set; }
 
         /// <summary>
+        /// Gets the certificate presented by the host, or <see langword="null"/> if the host
+        /// did not present a certificate.
+        /// </summary>
+        public Certificate? Certificate { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="HostKeyEventArgs"/> class.
         /// </summary>
         /// <param name="host">The host.</param>
@@ -124,6 +131,11 @@ namespace Renci.SshNet.Common
                     return BitConverter.ToString(FingerPrint).Replace('-', ':').ToLowerInvariant();
 #pragma warning restore CA1308 // Normalize strings to uppercase
                 });
+
+            if (host is CertificateHostAlgorithm certificateAlg)
+            {
+                Certificate = certificateAlg.Certificate;
+            }
         }
     }
 }

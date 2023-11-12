@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -67,6 +68,9 @@ namespace Renci.SshNet
         private static readonly Regex PrivateKeyRegex = new Regex(@"^-+ *BEGIN (?<keyName>\w+( \w+)*) PRIVATE KEY *-+\r?\n((Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: (?<cipherName>[A-Z0-9-]+),(?<salt>[A-F0-9]+)\r?\n\r?\n)|(Comment: ""?[^\r\n]*""?\r?\n))?(?<data>([a-zA-Z0-9/+=]{1,80}\r?\n)+)(\r?\n)?-+ *END \k<keyName> PRIVATE KEY *-+",
                                                                   RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.ExplicitCapture);
 
+        private static readonly Regex CertificateRegex = new Regex(@"(?<type>[-\w]+@openssh\.com)\s(?<data>([a-zA-Z0-9\/+=]*))\s+(?<comment>(.*))",
+            RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+
         private readonly List<HostAlgorithm> _hostAlgorithms = new List<HostAlgorithm>();
         private Key _key;
         private bool _isDisposed;
@@ -94,73 +98,78 @@ namespace Renci.SshNet
         }
 
         /// <summary>
+        /// Gets the public key certificate associated with this key,
+        /// or <see langword="null"/> if no certificate data
+        /// has been passed to the constructor.
+        /// </summary>
+        public Certificate Certificate { get; private set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PrivateKeyFile"/> class.
         /// </summary>
         /// <param name="key">The key.</param>
         public PrivateKeyFile(Key key)
         {
-            _key = key;
+            _key = key ?? throw new ArgumentNullException(nameof(key));
             _hostAlgorithms.Add(new KeyHostAlgorithm(key.ToString(), key));
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PrivateKeyFile"/> class.
         /// </summary>
-        /// <param name="privateKey">The private key.</param>
-        public PrivateKeyFile(Stream privateKey)
+        /// <param name="privateKeyFilePath">The path of the private key file.</param>
+        /// <param name="passPhrase">The pass phrase for the private key.</param>
+        /// <param name="certificateFilePath">The path of a certificate file which certifies the private key.</param>
+        public PrivateKeyFile(string privateKeyFilePath, string passPhrase = null, string certificateFilePath = null)
         {
-            Open(privateKey, passPhrase: null);
-            Debug.Assert(_hostAlgorithms.Count > 0, $"{nameof(HostKeyAlgorithms)} is not set.");
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PrivateKeyFile"/> class.
-        /// </summary>
-        /// <param name="fileName">Name of the file.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="fileName"/> is <see langword="null"/> or empty.</exception>
-        /// <remarks>
-        /// This method calls <see cref="File.Open(string, FileMode)"/> internally, this method does not catch exceptions from <see cref="File.Open(string, FileMode)"/>.
-        /// </remarks>
-        public PrivateKeyFile(string fileName)
-            : this(fileName, passPhrase: null)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PrivateKeyFile"/> class.
-        /// </summary>
-        /// <param name="fileName">Name of the file.</param>
-        /// <param name="passPhrase">The pass phrase.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="fileName"/> is <see langword="null"/> or empty, or <paramref name="passPhrase"/> is <see langword="null"/>.</exception>
-        /// <remarks>
-        /// This method calls <see cref="File.Open(string, FileMode)"/> internally, this method does not catch exceptions from <see cref="File.Open(string, FileMode)"/>.
-        /// </remarks>
-        public PrivateKeyFile(string fileName, string passPhrase)
-        {
-            if (string.IsNullOrEmpty(fileName))
+            if (privateKeyFilePath is null)
             {
-                throw new ArgumentNullException(nameof(fileName));
+                throw new ArgumentNullException(nameof(privateKeyFilePath));
             }
 
-            using (var keyFile = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var keyFile = File.OpenRead(privateKeyFilePath))
             {
                 Open(keyFile, passPhrase);
             }
 
-            Debug.Assert(_hostAlgorithms.Count > 0, $"{nameof(HostKeyAlgorithms)} is not set.");
+            if (certificateFilePath is not null)
+            {
+                using (var certificateFile = File.OpenRead(certificateFilePath))
+                {
+                    OpenCertificate(certificateFile);
+                }
+
+                Debug.Assert(Certificate is not null, $"{nameof(Certificate)} is null.");
+            }
+
+            Debug.Assert(Key is not null, $"{nameof(Key)} is null.");
+            Debug.Assert(HostKeyAlgorithms.Count > 0, $"{nameof(HostKeyAlgorithms)} is not set.");
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PrivateKeyFile"/> class.
         /// </summary>
         /// <param name="privateKey">The private key.</param>
-        /// <param name="passPhrase">The pass phrase.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="privateKey"/> or <paramref name="passPhrase"/> is <see langword="null"/>.</exception>
-        public PrivateKeyFile(Stream privateKey, string passPhrase)
+        /// <param name="passPhrase">The pass phrase for the private key.</param>
+        /// <param name="certificate">A certificate which certifies the private key.</param>
+        public PrivateKeyFile(Stream privateKey, string passPhrase = null, Stream certificate = null)
         {
+            if (privateKey is null)
+            {
+                throw new ArgumentNullException(nameof(privateKey));
+            }
+
             Open(privateKey, passPhrase);
 
-            Debug.Assert(_hostAlgorithms.Count > 0, $"{nameof(HostKeyAlgorithms)} is not set.");
+            if (certificate is not null)
+            {
+                OpenCertificate(certificate);
+
+                Debug.Assert(Certificate is not null, $"{nameof(Certificate)} is null.");
+            }
+
+            Debug.Assert(Key is not null, $"{nameof(Key)} is null.");
+            Debug.Assert(HostKeyAlgorithms.Count > 0, $"{nameof(HostKeyAlgorithms)} is not set.");
         }
 
         /// <summary>
@@ -170,10 +179,7 @@ namespace Renci.SshNet
         /// <param name="passPhrase">The pass phrase.</param>
         private void Open(Stream privateKey, string passPhrase)
         {
-            if (privateKey is null)
-            {
-                throw new ArgumentNullException(nameof(privateKey));
-            }
+            Debug.Assert(privateKey is not null, "Should have validated not-null in the constructor.");
 
             Match privateKeyMatch;
 
@@ -621,6 +627,67 @@ namespace Renci.SshNet
             }
 
             return parsedKey;
+        }
+
+        /// <summary>
+        /// Opens the specified certificate.
+        /// </summary>
+        /// <param name="certificate">The certificate.</param>
+        private void OpenCertificate(Stream certificate)
+        {
+            Debug.Assert(certificate is not null, "Should have validated not-null in the constructor.");
+
+            Match certificateMatch;
+
+            using (var sr = new StreamReader(certificate))
+            {
+                var text = sr.ReadToEnd();
+                certificateMatch = CertificateRegex.Match(text);
+            }
+
+            if (!certificateMatch.Success)
+            {
+                throw new SshException("Invalid certificate file.");
+            }
+
+            var data = certificateMatch.Result("${data}");
+
+            Certificate = new Certificate(Convert.FromBase64String(data));
+
+            Debug.Assert(Key is not null, $"{nameof(Key)} should have been initialised already.");
+
+            if (!Certificate.Key.Public.SequenceEqual(Key.Public))
+            {
+                throw new ArgumentException("The supplied certificate does not certify the supplied key.");
+            }
+
+            if (Key is RsaKey rsaKey)
+            {
+                Debug.Assert(Certificate.Key is RsaKey,
+                    $"Expected {nameof(Certificate)}.{nameof(Certificate.Key)} to be {nameof(RsaKey)} but was {Certificate.Key?.GetType()}");
+
+#pragma warning disable CA2000 // Dispose objects before losing scope
+                _hostAlgorithms.Add(new CertificateHostAlgorithm(
+                    "rsa-sha2-512-cert-v01@openssh.com",
+                    Key,
+                    Certificate,
+                    new RsaDigitalSignature(rsaKey, HashAlgorithmName.SHA512)));
+
+                _hostAlgorithms.Add(new CertificateHostAlgorithm(
+                    "rsa-sha2-256-cert-v01@openssh.com",
+                    Key,
+                    Certificate,
+                    new RsaDigitalSignature(rsaKey, HashAlgorithmName.SHA256)));
+#pragma warning restore CA2000 // Dispose objects before losing scope
+
+                Debug.Assert(Certificate.Name == "ssh-rsa-cert-v01@openssh.com");
+
+                _hostAlgorithms.Add(new CertificateHostAlgorithm("ssh-rsa-cert-v01@openssh.com", Key, Certificate));
+            }
+            else
+            {
+                _hostAlgorithms.Add(new CertificateHostAlgorithm(Certificate.Name, Key, Certificate));
+            }
         }
 
         /// <summary>

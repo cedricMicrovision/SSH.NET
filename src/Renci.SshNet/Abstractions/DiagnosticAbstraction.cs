@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace Renci.SshNet.Abstractions
@@ -62,8 +63,8 @@ namespace Renci.SshNet.Abstractions
         public static void Log(string text, TraceEventType type = TraceEventType.Verbose)
         {
             Source.TraceEvent(type,
-                              System.Environment.CurrentManagedThreadId,
-                              text);
+                              Environment.CurrentManagedThreadId,
+                              $"{DateTime.UtcNow:O} {text}");
         }
     }
 }

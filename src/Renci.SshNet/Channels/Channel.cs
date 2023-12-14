@@ -710,6 +710,8 @@ namespace Renci.SshNet.Channels
                         // Load request specific data
                         requestInfo.Load(e.Message.RequestData);
 
+                        DiagnosticAbstraction.Log($"Channel#{LocalChannelNumber} received request {requestInfo}");
+
                         // Raise request specific event
                         OnRequest(requestInfo);
                     }

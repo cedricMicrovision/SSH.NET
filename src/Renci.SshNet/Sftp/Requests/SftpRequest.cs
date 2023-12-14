@@ -57,5 +57,10 @@ namespace Renci.SshNet.Sftp.Requests
 
             Write(RequestId);
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} ({RequestId})";
+        }
     }
 }

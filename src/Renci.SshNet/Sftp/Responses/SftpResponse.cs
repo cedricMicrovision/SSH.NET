@@ -24,5 +24,10 @@
 
             Write(ResponseId);
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} ({ResponseId})";
+        }
     }
 }

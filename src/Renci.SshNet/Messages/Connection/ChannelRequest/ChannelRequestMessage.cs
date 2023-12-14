@@ -115,5 +115,11 @@
         {
             session.OnChannelRequestReceived(this);
         }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"{base.ToString()} {RequestName}";
+        }
     }
 }

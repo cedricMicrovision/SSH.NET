@@ -27,5 +27,10 @@
 
             WriteBinary(Data, 0, Data.Length);
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} {Data.Length} bytes";
+        }
     }
 }

@@ -54,5 +54,11 @@ namespace Renci.SshNet.Messages.Connection
         {
             Write(WantReply);
         }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return RequestName;
+        }
     }
 }

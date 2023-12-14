@@ -46,5 +46,10 @@ namespace Renci.SshNet.Sftp.Requests
             base.SaveData();
             WriteBinaryString(Handle);
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} {Session.ToHex(Handle)}";
+        }
     }
 }

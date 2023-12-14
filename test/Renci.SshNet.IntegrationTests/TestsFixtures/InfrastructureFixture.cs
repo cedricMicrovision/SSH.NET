@@ -6,6 +6,9 @@ namespace Renci.SshNet.IntegrationTests.TestsFixtures
 {
     public sealed class InfrastructureFixture : IDisposable
     {
+        private FileStream _fsOut;
+        private FileStream _fsErr;
+
         private InfrastructureFixture()
         {
         }
@@ -43,9 +46,13 @@ namespace Renci.SshNet.IntegrationTests.TestsFixtures
 
             await _sshServerImage.CreateAsync();
 
+            _fsOut = File.Open(@"C:\tmp\dockerout", FileMode.Create, FileAccess.Write);
+            _fsErr = File.Open(@"C:\tmp\dockererr", FileMode.Create, FileAccess.Write);
+
             _sshServer = new ContainerBuilder()
                 .WithHostname("renci-ssh-tests-server")
                 .WithImage(_sshServerImage)
+                .WithOutputConsumer(Consume.RedirectStdoutAndStderrToStream(_fsOut, _fsErr))
                 .WithPortBinding(22, true)
                 .Build();
 
@@ -65,6 +72,9 @@ namespace Renci.SshNet.IntegrationTests.TestsFixtures
 
         public async Task DisposeAsync()
         {
+            _fsOut?.Dispose();
+            _fsErr?.Dispose();
+
             if (_sshServer != null)
             {
                 await _sshServer.DisposeAsync();

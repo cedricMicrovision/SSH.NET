@@ -1,4 +1,5 @@
-﻿using Renci.SshNet.Common;
+﻿using Renci.SshNet.Abstractions;
+using Renci.SshNet.Common;
 using Renci.SshNet.Sftp;
 
 namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
@@ -78,6 +79,7 @@ namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
         [TestCategory("Sftp")]
         public void Test_Sftp_Multiple_Async_Upload_And_Download_10Files_5MB_Each()
         {
+            EnableTracing();
             var maxFiles = 10;
             var maxSize = 5;
 
@@ -123,6 +125,8 @@ namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
                     uploadWaitHandles.Add(testInfo.UploadResult.AsyncWaitHandle);
                 }
 
+                DiagnosticAbstraction.Log("Uploads started");
+
                 //  Wait for upload to finish
                 var uploadCompleted = false;
                 while (!uploadCompleted)
@@ -142,6 +146,8 @@ namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
                     Thread.Sleep(500);
                 }
 
+                DiagnosticAbstraction.Log("Upload loop finished");
+
                 //  End file uploads
                 foreach (var remoteFile in testInfoList.Keys)
                 {
@@ -150,6 +156,8 @@ namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
                     sftp.EndUploadFile(testInfo.UploadResult);
                     testInfo.UploadedFile.Dispose();
                 }
+
+                DiagnosticAbstraction.Log("Uploads finished");
 
                 //  Start file downloads
 
@@ -166,6 +174,8 @@ namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
 
                     downloadWaitHandles.Add(testInfo.DownloadResult.AsyncWaitHandle);
                 }
+
+                DiagnosticAbstraction.Log("Downloads finished");
 
                 //  Wait for download to finish
                 var downloadCompleted = false;
@@ -185,6 +195,8 @@ namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
                     }
                     Thread.Sleep(500);
                 }
+
+                DiagnosticAbstraction.Log("Download loop finished");
 
                 var hashMatches = true;
                 var uploadDownloadSizeOk = true;
@@ -216,6 +228,8 @@ namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
                     }
                 }
 
+                DiagnosticAbstraction.Log("Downloads finished");
+
                 //  Clean up after test
                 foreach (var remoteFile in testInfoList.Keys)
                 {
@@ -232,6 +246,7 @@ namespace Renci.SshNet.IntegrationTests.OldIntegrationTests
                 Assert.IsTrue(hashMatches, "Hash does not match");
                 Assert.IsTrue(uploadDownloadSizeOk, "Uploaded and downloaded bytes does not match");
             }
+            DisableTracing();
         }
 
         //  TODO:   Split this test into multiple tests

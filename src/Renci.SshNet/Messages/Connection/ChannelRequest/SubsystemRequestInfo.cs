@@ -83,5 +83,10 @@
 
             WriteBinaryString(_subsystemName);
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} {SubsystemName}";
+        }
     }
 }

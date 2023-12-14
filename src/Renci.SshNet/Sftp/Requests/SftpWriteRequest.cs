@@ -1,4 +1,5 @@
 ﻿using System;
+
 using Renci.SshNet.Sftp.Responses;
 
 namespace Renci.SshNet.Sftp.Requests
@@ -96,6 +97,11 @@ namespace Renci.SshNet.Sftp.Requests
             WriteBinaryString(Handle);
             Write(ServerFileOffset);
             WriteBinary(Data, Offset, Length);
+        }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} {Session.ToHex(Handle)} {ServerFileOffset}+{Length}";
         }
     }
 }

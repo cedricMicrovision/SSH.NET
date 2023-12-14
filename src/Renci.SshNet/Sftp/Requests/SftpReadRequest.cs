@@ -76,5 +76,10 @@ namespace Renci.SshNet.Sftp.Requests
                 base.Complete(response);
             }
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} {Offset}+{Length}";
+        }
     }
 }

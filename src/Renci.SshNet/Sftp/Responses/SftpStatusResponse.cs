@@ -39,5 +39,10 @@
                 Language = ReadString(Ascii);
             }
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} {StatusCode} {ErrorMessage}";
+        }
     }
 }

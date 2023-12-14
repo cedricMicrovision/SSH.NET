@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Renci.SshNet.Abstractions;
 using Renci.SshNet.Common;
 using Renci.SshNet.Sftp.Requests;
 using Renci.SshNet.Sftp.Responses;
@@ -84,6 +85,7 @@ namespace Renci.SshNet.Sftp
 
         internal void SendMessage(SftpMessage sftpMessage)
         {
+            DiagnosticAbstraction.Log($"Sending {sftpMessage}");
             var data = sftpMessage.GetBytes();
             SendData(data);
         }
@@ -403,6 +405,8 @@ namespace Renci.SshNet.Sftp
 
             // Load message data into it
             response.Load(packetData, offset + 1, count - 1);
+
+            DiagnosticAbstraction.Log($"Received {response}");
 
             try
             {

@@ -140,5 +140,11 @@ namespace Renci.SshNet.Messages.Connection
 
             WriteBinary(Data, Offset, Size);
         }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"{base.ToString()} {Size}";
+        }
     }
 }

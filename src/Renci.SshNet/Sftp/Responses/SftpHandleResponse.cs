@@ -27,5 +27,10 @@
 
             WriteBinary(Handle, 0, Handle.Length);
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} {Session.ToHex(Handle)}";
+        }
     }
 }

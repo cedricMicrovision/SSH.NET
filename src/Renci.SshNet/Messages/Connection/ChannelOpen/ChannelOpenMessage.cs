@@ -165,5 +165,11 @@ namespace Renci.SshNet.Messages.Connection
         {
             session.OnChannelOpenReceived(this);
         }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"{base.ToString()} {Info.ChannelType}";
+        }
     }
 }

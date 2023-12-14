@@ -1,7 +1,7 @@
 ﻿namespace Renci.SshNet.Messages.Connection
 {
     /// <summary>
-    /// Represents SSH_MSG_CHANNEL_SUCCESS message.
+    /// Represents SSH_MSG_CHANNEL_WINDOW_ADJUST message.
     /// </summary>
     public class ChannelWindowAdjustMessage : ChannelMessage
     {
@@ -85,6 +85,12 @@
         internal override void Process(Session session)
         {
             session.OnChannelWindowAdjustReceived(this);
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"{base.ToString()} {BytesToAdd}";
         }
     }
 }

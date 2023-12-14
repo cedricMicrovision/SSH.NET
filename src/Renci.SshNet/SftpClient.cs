@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -2420,56 +2422,93 @@ namespace Renci.SshNet
             // create buffer of optimal length
             var buffer = new byte[_sftpSession.CalculateOptimalWriteLength(_bufferSize, handle)];
 
-            var bytesRead = input.Read(buffer, 0, buffer.Length);
-            var expectedResponses = 0;
-            var responseReceivedWaitHandle = new AutoResetEvent(initialState: false);
+            int bytesRead;
 
-            do
+            ExceptionDispatchInfo exceptionDispatchInfo = null;
+
+            const int MaxInFlightPackets = 100; // Chosen arbitrarily, but at least enough to (probably) saturate the SSH channel or TCP windows.
+
+            using (var semaphore = new SemaphoreSlim(initialCount: MaxInFlightPackets, maxCount: MaxInFlightPackets))
+            using (var semaphoreFull = new ManualResetEventSlim())
+            using (var badStatusResponse = new ManualResetEventSlim())
             {
-                // Cancel upload
-                if (asyncResult is not null && asyncResult.IsUploadCanceled)
+                while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
                 {
-                    break;
-                }
+                    do
+                    {
+                        // Wait on badStatusResponse (and the other session or channel-level wait handles)
+                        // in addition to a sempahore slot in order to pick up any exceptions.
+                        if (_sftpSession.WaitAny(badStatusResponse.WaitHandle, semaphore.AvailableWaitHandle, _operationTimeout) == 0)
+                        {
+                            // We received a bad response.
 
-                if (bytesRead > 0)
-                {
+                            Debug.Assert(exceptionDispatchInfo is not null,
+                                $"Expected {nameof(exceptionDispatchInfo)} to be not null when {nameof(badStatusResponse)} is set");
+
+                            exceptionDispatchInfo.Throw();
+                        }
+                    }
+                    while (!semaphore.Wait(0)); // Make sure we actually enter the semaphore (we only waited on the "Available" event).
+
+                    if (asyncResult?.IsUploadCanceled == true)
+                    {
+                        break;
+                    }
+
                     var writtenBytes = offset + (ulong) bytesRead;
 
+                    semaphoreFull.Reset();
+
                     _sftpSession.RequestWrite(handle, offset, buffer, offset: 0, bytesRead, wait: null, s =>
+                    {
+                        try
                         {
-                            if (s.StatusCode == StatusCodes.Ok)
+                            if (s.StatusCode != StatusCodes.Ok)
                             {
-                                _ = Interlocked.Decrement(ref expectedResponses);
-                                _ = responseReceivedWaitHandle.Set();
-
-                                asyncResult?.Update(writtenBytes);
-
-                                // Call callback to report number of bytes written
-                                if (uploadCallback is not null)
-                                {
-                                    // Execute callback on different thread
-                                    ThreadAbstraction.ExecuteThread(() => uploadCallback(writtenBytes));
-                                }
+                                exceptionDispatchInfo = ExceptionDispatchInfo.Capture(new SshException($"{s.StatusCode}: {s.ErrorMessage}"));
+                                badStatusResponse.Set();
                             }
-                        });
 
-                    _ = Interlocked.Increment(ref expectedResponses);
+                            asyncResult?.Update(writtenBytes);
+
+                            // Call callback to report number of bytes written
+                            if (uploadCallback is not null)
+                            {
+                                // Execute callback on different thread
+                                ThreadAbstraction.ExecuteThread(() => uploadCallback(writtenBytes));
+                            }
+                        }
+                        finally
+                        {
+                            if (semaphore.Release() == MaxInFlightPackets - 1)
+                            {
+                                // If we've just received the last in-flight response,
+                                // signal that the semaphore is full.
+                                // Note: this does not necessarily mean that we have
+                                // finished writing.
+                                semaphoreFull.Set();
+                            }
+                        }
+                    });
 
                     offset += (ulong) bytesRead;
-
-                    bytesRead = input.Read(buffer, 0, buffer.Length);
                 }
-                else if (expectedResponses > 0)
+
+                // We have sent all the data. Now we need to wait for the remaining writes to complete
+                // i.e. until the semaphore is full again.
+
+                if (_sftpSession.WaitAny(badStatusResponse.WaitHandle, semaphoreFull.WaitHandle, _operationTimeout) == 0)
                 {
-                    // Wait for expectedResponses to change
-                    _sftpSession.WaitOnHandle(responseReceivedWaitHandle, _operationTimeout);
+                    // We received a bad response.
+
+                    Debug.Assert(exceptionDispatchInfo is not null,
+                        $"Expected {nameof(exceptionDispatchInfo)} to be not null when {nameof(badStatusResponse)} is set");
+
+                    exceptionDispatchInfo.Throw();
                 }
             }
-            while (expectedResponses > 0 || bytesRead > 0);
 
             _sftpSession.RequestClose(handle);
-            responseReceivedWaitHandle.Dispose();
         }
 
         /// <summary>

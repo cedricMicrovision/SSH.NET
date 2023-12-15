@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Threading;
@@ -254,6 +255,35 @@ namespace Renci.SshNet
                     throw new SshOperationTimeoutException("Operation has timed out.");
                 default:
                     throw new NotImplementedException(string.Format(CultureInfo.InvariantCulture, "WaitAny return value '{0}' is not implemented.", result));
+            }
+        }
+
+        /// <summary>
+        /// Tests the status of wait handles which imply an error has occured,
+        /// and throws the appropriate exception if one of them is set.
+        /// </summary>
+        public void TestHandlesAndThrow()
+        {
+            var waitHandles = new[]
+                {
+                    _errorOccuredWaitHandle,
+                    _sessionDisconnectedWaitHandle,
+                    _channelClosedWaitHandle,
+                };
+
+            var result = WaitHandle.WaitAny(waitHandles, 0);
+            switch (result)
+            {
+                case 0:
+                    ExceptionDispatchInfo.Capture(_exception).Throw();
+                    break;
+                case 1:
+                    throw new SshException("Connection was closed by the server.");
+                case 2:
+                    throw new SshException("Channel was closed.");
+                default:
+                    Debug.Assert(result == WaitHandle.WaitTimeout);
+                    return;
             }
         }
 

@@ -10,6 +10,10 @@ namespace Renci.SshNet.IntegrationTests
         private readonly RemoteSshd _remoteSshd;
         private readonly IConnectionInfoFactory _connectionInfoFactory;
         private readonly SshdConfig _config;
+        private readonly Dictionary<string, List<string>> _authorizedKeysByUser = new()
+        {
+            { Users.Regular.UserName, new List<string>() }
+        };
 
         public RemoteSshdConfig(RemoteSshd remoteSshd, IConnectionInfoFactory connectionInfoFactory)
         {
@@ -26,6 +30,25 @@ namespace Renci.SshNet.IntegrationTests
 
                     memoryStream.Position = 0;
                     _config = SshdConfig.LoadFrom(memoryStream, Encoding.UTF8);
+                }
+
+                foreach ((string user, List<string> authorizedKeys) in _authorizedKeysByUser)
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        client.Download($"/home/{user}/.ssh/authorized_keys", memoryStream);
+
+                        memoryStream.Position = 0;
+
+                        using (var sr = new StreamReader(memoryStream))
+                        {
+                            string line;
+                            while ((line = sr.ReadLine()) != null)
+                            {
+                                authorizedKeys.Add(line);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -92,6 +115,30 @@ namespace Renci.SshNet.IntegrationTests
             }
 
             sshNetMatch.AuthenticationMethods = authenticationMethods;
+
+            return this;
+        }
+
+        public RemoteSshdConfig WithAuthorizedKeys(string user, Stream authorizedKeysStream)
+        {
+            if (_authorizedKeysByUser.TryGetValue(user, out List<string> userAuthorizedKeys))
+            {
+                userAuthorizedKeys.Clear();
+            }
+            else
+            {
+                userAuthorizedKeys = [];
+                _authorizedKeysByUser.Add(user, userAuthorizedKeys);
+            }
+
+            using (var sr = new StreamReader(authorizedKeysStream))
+            {
+                string line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    userAuthorizedKeys.Add(line);
+                }
+            }
 
             return this;
         }
@@ -208,6 +255,25 @@ namespace Renci.SshNet.IntegrationTests
                     memoryStream.Position = 0;
 
                     client.Upload(memoryStream, SshdConfigFilePath);
+                }
+
+                foreach ((string user, List<string> authorizedKeys) in _authorizedKeysByUser)
+                {
+                    using (var memoryStream = new MemoryStream())
+                    using (var sw = new StreamWriter(memoryStream, Utf8NoBom))
+                    {
+                        sw.NewLine = "\n";
+
+                        foreach (string key in authorizedKeys)
+                        {
+                            sw.WriteLine(key);
+                        }
+
+                        sw.Flush();
+                        memoryStream.Position = 0;
+
+                        client.Upload(memoryStream, $"/home/{user}/.ssh/authorized_keys");
+                    }
                 }
             }
 

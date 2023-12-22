@@ -9,6 +9,7 @@ namespace Renci.SshNet.IntegrationTests.Common
         public static void Reset(this RemoteSshdConfig remoteSshdConfig)
         {
             remoteSshdConfig.WithAuthenticationMethods(Users.Regular.UserName, DefaultAuthenticationMethods)
+                            .WithAuthorizedKeys(Users.Regular.UserName, File.OpenRead(Path.Combine("user", Users.Regular.UserName, "authorized_keys")))
                             .WithChallengeResponseAuthentication(false)
                             .WithKeyboardInteractiveAuthentication(false)
                             .PrintMotd()

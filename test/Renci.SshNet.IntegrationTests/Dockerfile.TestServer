@@ -30,7 +30,7 @@ RUN apk update && apk upgrade --no-cache && \
     echo 'sshnet:ssh4ever' | chpasswd && \
     dos2unix /home/sshnet/.ssh/* && \
     chown -R sshnet:sshnet /home/sshnet && \
-    chmod -R 700 /home/sshnet/.ssh && \
+    chmod -R 755 /home/sshnet/.ssh && \
     chmod -R 644 /home/sshnet/.ssh/authorized_keys && \
     # add user to administer container (update configs, restart sshd)
     adduser -D sshnetadm && \

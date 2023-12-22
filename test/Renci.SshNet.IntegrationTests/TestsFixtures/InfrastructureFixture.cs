@@ -32,6 +32,9 @@ namespace Renci.SshNet.IntegrationTests.TestsFixtures
 
         public SshUser User = new SshUser("sshnet", "ssh4ever");
 
+        private readonly FileStream _fsOut = File.Create(@"C:\tmp\fsout");
+        private readonly FileStream _fsErr = File.Create(@"C:\tmp\fserr");
+
         public async Task InitializeAsync()
         {
             _sshServerImage = new ImageFromDockerfileBuilder()
@@ -47,6 +50,7 @@ namespace Renci.SshNet.IntegrationTests.TestsFixtures
                 .WithHostname("renci-ssh-tests-server")
                 .WithImage(_sshServerImage)
                 .WithPortBinding(22, true)
+                .WithOutputConsumer(Consume.RedirectStdoutAndStderrToStream(_fsOut, _fsErr))
                 .Build();
 
             await _sshServer.StartAsync();
@@ -74,6 +78,9 @@ namespace Renci.SshNet.IntegrationTests.TestsFixtures
             {
                 await _sshServerImage.DisposeAsync();
             }
+
+            _fsOut?.Dispose();
+            _fsErr?.Dispose();
         }
 
         public void Dispose()

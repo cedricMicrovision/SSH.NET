@@ -8,8 +8,11 @@ namespace Renci.SshNet.TestTools.OpenSSH
 {
     public sealed class SshdConfig
     {
-        private static readonly Regex MatchRegex = new Regex($@"\s*Match\s+(User\s+(?<users>[\S]+))?\s*(Address\s+(?<addresses>[\S]+))?\s*",
+        private static readonly Regex MatchRegex = new Regex(@"\s*Match\s+(User\s+(?<users>[\S]+))?\s*(Address\s+(?<addresses>[\S]+))?\s*",
                                                              RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+
+        private static readonly Regex OptionRegex = new Regex(@"^\s*(?<name>[\S]+)\s+(?<value>.+?){1}\s*$",
+                                                              RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
         private readonly SubsystemFormatter _subsystemFormatter;
         private readonly Int32Formatter _int32Formatter;
@@ -300,9 +303,7 @@ namespace Renci.SshNet.TestTools.OpenSSH
 
         private static void ProcessGlobalOption(SshdConfig sshdConfig, string line)
         {
-            var matchOptionRegex = new Regex(@"^\s*(?<name>[\S]+)\s+(?<value>.+?){1}\s*$");
-
-            var optionsMatch = matchOptionRegex.Match(line);
+            var optionsMatch = OptionRegex.Match(line);
             if (!optionsMatch.Success)
             {
                 return;

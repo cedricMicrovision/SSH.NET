@@ -44,5 +44,6 @@
   <ItemGroup>
     <EmbeddedResource Include="..\Data\*" LinkBase="Data" />
     <EmbeddedResource Include="resources\issue #70.png" />
+    <None Include="user\sshnet\authorized_keys" CopyToOutputDirectory="Always"/>
   </ItemGroup>
 </Project>

@@ -72,12 +72,15 @@ namespace Renci.SshNet.IntegrationTests
 
         private void DoTest(PublicKeyAlgorithm publicKeyAlgorithm, string keyResource, string passPhrase = null)
         {
+            var authMethod = CreatePrivateKeyAuthenticationMethod(keyResource, passPhrase);
+
             _remoteSshdConfig.ClearPublicKeyAcceptedAlgorithms()
                              .AddPublicKeyAcceptedAlgorithm(publicKeyAlgorithm)
+                             .WithAuthorizedKeys(authMethod.Username, GetData(Path.GetFileNameWithoutExtension(keyResource) + ".pub"))
                              .Update()
                              .Restart();
 
-            var connectionInfo = _connectionInfoFactory.Create(CreatePrivateKeyAuthenticationMethod(keyResource, passPhrase));
+            var connectionInfo = _connectionInfoFactory.Create(authMethod);
 
             using (var client = new SshClient(connectionInfo))
             {

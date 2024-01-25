@@ -211,6 +211,8 @@ namespace Renci.SshNet.Tests.Classes
             _ = _keyExchangeMock.Setup(p => p.Start(Session, It.IsAny<KeyExchangeInitMessage>(), false));
             _ = _keyExchangeMock.Setup(p => p.ExchangeHash)
                                 .Returns(SessionId);
+            _ = _keyExchangeMock.Setup(p => p.CreatePacketEncryptor())
+                                .Returns((IPacketEncryptor) null);
             _ = _keyExchangeMock.Setup(p => p.CreateServerCipher())
                                 .Returns((Cipher) null);
             _ = _keyExchangeMock.Setup(p => p.CreateClientCipher())

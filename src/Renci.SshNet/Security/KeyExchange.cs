@@ -215,6 +215,15 @@ namespace Renci.SshNet.Security
             return _clientCipherInfo.Cipher(clientKey, clientVector);
         }
 
+        /// <inheritdoc/>
+        public IPacketEncryptor CreatePacketEncryptor()
+        {
+            var cipher = CreateClientCipher();
+            var mac = CreateClientHash();
+
+            return new PacketEncryptor(cipher, mac);
+        }
+
         /// <summary>
         /// Creates the server side hash algorithm to use.
         /// </summary>

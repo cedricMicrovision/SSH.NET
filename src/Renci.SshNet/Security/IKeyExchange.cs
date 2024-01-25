@@ -56,6 +56,14 @@ namespace Renci.SshNet.Security
         Cipher CreateClientCipher();
 
         /// <summary>
+        /// Creates the client-side cipher to use.
+        /// </summary>
+        /// <returns>
+        /// The client cipher.
+        /// </returns>
+        IPacketEncryptor CreatePacketEncryptor();
+
+        /// <summary>
         /// Creates the server-side cipher to use.
         /// </summary>
         /// <returns>

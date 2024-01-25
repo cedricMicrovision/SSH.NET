@@ -194,24 +194,28 @@
             return buffer;
         }
 
+        internal static void UInt64ToBigEndian(ulong value, byte[] buffer)
+        {
+            buffer[0] = (byte) ((value & 0xFF00000000000000) >> 56);
+            buffer[1] = (byte) ((value & 0x00FF000000000000) >> 48);
+            buffer[2] = (byte) ((value & 0x0000FF0000000000) >> 40);
+            buffer[3] = (byte) ((value & 0x000000FF00000000) >> 32);
+            buffer[4] = (byte) ((value & 0x00000000FF000000) >> 24);
+            buffer[5] = (byte) ((value & 0x0000000000FF0000) >> 16);
+            buffer[6] = (byte) ((value & 0x000000000000FF00) >> 8);
+            buffer[7] = (byte) (value & 0x00000000000000FF);
+        }
+
         /// <summary>
         /// Returns the specified 64-bit unsigned integer value as an array of bytes.
         /// </summary>
         /// <param name="value">The number to convert.</param>
         /// <returns>An array of bytes with length 8.</returns>
-        internal static byte[] UInt64ToBigEndian(ulong value)
+        internal static byte[] UInt64ToBigEndian(uint value)
         {
-            return new[]
-                {
-                    (byte) ((value & 0xFF00000000000000) >> 56),
-                    (byte) ((value & 0x00FF000000000000) >> 48),
-                    (byte) ((value & 0x0000FF0000000000) >> 40),
-                    (byte) ((value & 0x000000FF00000000) >> 32),
-                    (byte) ((value & 0x00000000FF000000) >> 24),
-                    (byte) ((value & 0x0000000000FF0000) >> 16),
-                    (byte) ((value & 0x000000000000FF00) >> 8),
-                    (byte) (value & 0x00000000000000FF)
-                };
+            var buffer = new byte[8];
+            UInt64ToBigEndian(value, buffer);
+            return buffer;
         }
 
         /// <summary>

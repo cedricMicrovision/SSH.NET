@@ -181,15 +181,13 @@ namespace Renci.SshNet
 
         private HashAlgorithm _serverMac;
 
-        private HashAlgorithm _clientMac;
-
-        private Cipher _clientCipher;
-
         private Cipher _serverCipher;
 
         private Compressor _serverDecompression;
 
         private Compressor _clientCompression;
+
+        private IPacketEncryptor _packetEncryptor;
 
         private SemaphoreSlim _sessionSemaphore;
 
@@ -1059,48 +1057,25 @@ namespace Renci.SshNet
 
             DiagnosticAbstraction.Log(string.Format("[{0}] Sending message '{1}' to server: '{2}'.", ToHex(SessionId), message.GetType().Name, message));
 
-            var paddingMultiplier = _clientCipher is null ? (byte) 8 : Math.Max((byte) 8, _serverCipher.MinimumSize);
+            var paddingMultiplier = _packetEncryptor is not null ? _packetEncryptor.PaddingMultiplier : (byte)8;
             var packetData = message.GetPacket(paddingMultiplier, _clientCompression);
 
             // take a write lock to ensure the outbound packet sequence number is incremented
             // atomically, and only after the packet has actually been sent
             lock (_socketWriteLock)
             {
-                byte[] hash = null;
-                var packetDataOffset = 4; // first four bytes are reserved for outbound packet sequence
-
-                if (_clientMac != null)
+                if (_packetEncryptor is not null)
                 {
                     // write outbound packet sequence to start of packet data
                     Pack.UInt32ToBigEndian(_outboundPacketSequence, packetData);
 
-                    // calculate packet hash
-                    hash = _clientMac.ComputeHash(packetData);
-                }
+                    packetData = _packetEncryptor.Encrypt(packetData);
 
-                // Encrypt packet data
-                if (_clientCipher != null)
-                {
-                    packetData = _clientCipher.Encrypt(packetData, packetDataOffset, packetData.Length - packetDataOffset);
-                    packetDataOffset = 0;
-                }
-
-                if (packetData.Length > MaximumSshPacketSize)
-                {
-                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Packet is too big. Maximum packet size is {0} bytes.", MaximumSshPacketSize));
-                }
-
-                var packetLength = packetData.Length - packetDataOffset;
-                if (hash is null)
-                {
-                    SendPacket(packetData, packetDataOffset, packetLength);
+                    SendPacket(packetData, 0, packetData.Length);
                 }
                 else
                 {
-                    var data = new byte[packetLength + hash.Length];
-                    Buffer.BlockCopy(packetData, packetDataOffset, data, 0, packetLength);
-                    Buffer.BlockCopy(hash, 0, data, packetLength, hash.Length);
-                    SendPacket(data, 0, data.Length);
+                    SendPacket(packetData, 4, packetData.Length - 4);
                 }
 
                 // increment the packet sequence number only after we're sure the packet has
@@ -1132,6 +1107,11 @@ namespace Renci.SshNet
         /// </remarks>
         private void SendPacket(byte[] packet, int offset, int length)
         {
+            if (length > MaximumSshPacketSize)
+            {
+                throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "Packet is too big. Maximum packet size is {0} bytes.", MaximumSshPacketSize));
+            }
+
             _socketDisposeLock.Wait();
 
             try
@@ -1458,10 +1438,7 @@ namespace Renci.SshNet
                 disposableServerCipher.Dispose();
             }
 
-            if (_clientCipher is IDisposable disposableClientCipher)
-            {
-                disposableClientCipher.Dispose();
-            }
+            _packetEncryptor?.Dispose();
 
             if (_serverMac != null)
             {
@@ -1469,19 +1446,12 @@ namespace Renci.SshNet
                 _serverMac = null;
             }
 
-            if (_clientMac != null)
-            {
-                _clientMac.Dispose();
-                _clientMac = null;
-            }
-
             // Update negotiated algorithms
             _serverCipher = _keyExchange.CreateServerCipher();
-            _clientCipher = _keyExchange.CreateClientCipher();
             _serverMac = _keyExchange.CreateServerHash();
-            _clientMac = _keyExchange.CreateClientHash();
             _clientCompression = _keyExchange.CreateCompressor();
             _serverDecompression = _keyExchange.CreateDecompressor();
+            _packetEncryptor = _keyExchange.CreatePacketEncryptor();
 
             // Dispose of old KeyExchange object as it is no longer needed.
             _keyExchange.HostKeyReceived -= KeyExchange_HostKeyReceived;
@@ -2082,23 +2052,13 @@ namespace Renci.SshNet
                     disposableServerCipher.Dispose();
                 }
 
-                if (_clientCipher is IDisposable disposableClientCipher)
-                {
-                    disposableClientCipher.Dispose();
-                }
+                _packetEncryptor?.Dispose();
 
                 var serverMac = _serverMac;
                 if (serverMac != null)
                 {
                     serverMac.Dispose();
                     _serverMac = null;
-                }
-
-                var clientMac = _clientMac;
-                if (clientMac != null)
-                {
-                    clientMac.Dispose();
-                    _clientMac = null;
                 }
 
                 var keyExchange = _keyExchange;

@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+using System;
+using System.Security.Cryptography;
 
 using Renci.SshNet.Common;
 using Renci.SshNet.Security.Cryptography;
@@ -10,8 +12,9 @@ namespace Renci.SshNet.Security
     /// </summary>
     public class DsaKey : Key, IDisposable
     {
-        private DsaDigitalSignature _digitalSignature;
-        private bool _isDisposed;
+        private DsaDigitalSignature? _digitalSignature;
+
+        internal DSA DSA { get; }
 
         /// <summary>
         /// Gets the P.
@@ -104,6 +107,9 @@ namespace Renci.SshNet.Security
             Q = publicKeyData.Keys[1];
             G = publicKeyData.Keys[2];
             Y = publicKeyData.Keys[3];
+
+            DSA = DSA.Create();
+            DSA.ImportParameters(GetDSAParameters());
         }
 
         /// <summary>
@@ -130,6 +136,9 @@ namespace Renci.SshNet.Security
             {
                 throw new InvalidOperationException("Invalid private key (expected EOF).");
             }
+
+            DSA = DSA.Create();
+            DSA.ImportParameters(GetDSAParameters());
         }
 
         /// <summary>
@@ -147,6 +156,36 @@ namespace Renci.SshNet.Security
             G = g;
             Y = y;
             X = x;
+
+            DSA = DSA.Create();
+            DSA.ImportParameters(GetDSAParameters());
+        }
+
+        internal DSAParameters GetDSAParameters()
+        {
+            // P, G, Y, Q are required.
+            // P, G, Y must have the same length.
+            // If X is present, it must have the same length as Q.
+
+            // See https://github.com/dotnet/runtime/blob/fadd8313653f71abd0068c8bf914be88edb2c8d3/src/libraries/Common/src/System/Security/Cryptography/DSACng.ImportExport.cs#L23
+            // and https://github.com/dotnet/runtime/blob/fadd8313653f71abd0068c8bf914be88edb2c8d3/src/libraries/Common/src/System/Security/Cryptography/DSAKeyFormatHelper.cs#L18
+            // (and similar code in RsaKey.cs)
+
+            var ret = new DSAParameters
+            {
+                P = P.ToByteArray(isUnsigned: true, isBigEndian: true),
+                Q = Q.ToByteArray(isUnsigned: true, isBigEndian: true),
+            };
+
+            ret.G = G.ExportKeyParameter(ret.P.Length);
+            ret.Y = G.ExportKeyParameter(ret.P.Length);
+
+            if (!X.IsZero)
+            {
+                ret.X = X.ExportKeyParameter(ret.Q.Length);
+            }
+
+            return ret;
         }
 
         /// <summary>
@@ -164,30 +203,11 @@ namespace Renci.SshNet.Security
         /// <param name="disposing"><see langword="true"/> to release both managed and unmanaged resources; <see langword="false"/> to release only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-
             if (disposing)
             {
-                var digitalSignature = _digitalSignature;
-                if (digitalSignature != null)
-                {
-                    digitalSignature.Dispose();
-                    _digitalSignature = null;
-                }
-
-                _isDisposed = true;
+                _digitalSignature?.Dispose();
+                DSA.Dispose();
             }
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="DsaKey"/> class.
-        /// </summary>
-        ~DsaKey()
-        {
-            Dispose(disposing: false);
         }
     }
 }

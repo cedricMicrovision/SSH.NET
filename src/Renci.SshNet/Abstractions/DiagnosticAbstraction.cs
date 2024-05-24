@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿#nullable enable
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace Renci.SshNet.Abstractions
@@ -9,6 +10,18 @@ namespace Renci.SshNet.Abstractions
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static class DiagnosticAbstraction
     {
+#if DEBUG
+        /// <summary>
+        /// Gets or sets the path to which to write session secrets which
+        /// Wireshark can read and use to inspect encrypted traffic.
+        /// </summary>
+        /// <remarks>
+        /// To configure in Wireshark, go to Edit -> Preferences -> Protocols
+        /// -> SSH and set the same value for "Key log filename".
+        /// </remarks>
+        public static string? WiresharkKeyLogFilePath { get; set; }
+#endif
+
         /// <summary>
         /// The <see cref="TraceSource"/> instance used by SSH.NET.
         /// </summary>

@@ -296,7 +296,7 @@ namespace Renci.SshNet
         /// Gets the client init message.
         /// </summary>
         /// <value>The client init message.</value>
-        public Message ClientInitMessage { get; private set; }
+        public KeyExchangeInitMessage ClientInitMessage { get; private set; }
 
         /// <summary>
         /// Gets the server version string.
@@ -1541,6 +1541,13 @@ namespace Renci.SshNet
 
             _clientCompression = _keyExchange.CreateCompressor();
             _serverDecompression = _keyExchange.CreateDecompressor();
+
+#if DEBUG
+            if (DiagnosticAbstraction.WiresharkKeyLogFilePath is string path && _keyExchange is KeyExchange kex)
+            {
+                kex.WriteWiresharkKeyLogFile(path);
+            }
+#endif
 
             // Dispose of old KeyExchange object as it is no longer needed.
             _keyExchange.HostKeyReceived -= KeyExchange_HostKeyReceived;

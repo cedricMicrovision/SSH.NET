@@ -41,3 +41,5 @@ The Debug build of SSH.NET contains rudimentary logging functionality via `Syste
 ### Wireshark
 
 Wireshark is able to dissect initial connection packets, such as key exchange, before encryption happens. Enter "ssh" as the display filter. See https://wiki.wireshark.org/SSH.md for more information.
+
+TODO

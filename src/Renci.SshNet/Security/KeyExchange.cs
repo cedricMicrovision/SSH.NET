@@ -410,6 +410,13 @@ namespace Renci.SshNet.Security
             Session.SendMessage(message);
         }
 
+        internal void WriteWiresharkKeyLogFile(string filePath)
+        {
+            System.IO.File.WriteAllText(
+                filePath,
+                $"{Session.ToHex(Session.ClientInitMessage.Cookie)} SHARED_SECRET {Session.ToHex(SharedKey)}");
+        }
+
         /// <summary>
         /// Generates the session key.
         /// </summary>

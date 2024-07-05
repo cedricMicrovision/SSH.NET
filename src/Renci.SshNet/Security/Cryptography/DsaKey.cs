@@ -108,7 +108,8 @@ namespace Renci.SshNet.Security
             G = publicKeyData.Keys[2];
             Y = publicKeyData.Keys[3];
 
-            DSA = LoadDSA();
+            DSA = DSA.Create();
+            DSA.ImportParameters(GetDSAParameters());
         }
 
         /// <summary>
@@ -136,7 +137,8 @@ namespace Renci.SshNet.Security
                 throw new InvalidOperationException("Invalid private key (expected EOF).");
             }
 
-            DSA = LoadDSA();
+            DSA = DSA.Create();
+            DSA.ImportParameters(GetDSAParameters());
         }
 
         /// <summary>
@@ -155,27 +157,9 @@ namespace Renci.SshNet.Security
             Y = y;
             X = x;
 
-            DSA = LoadDSA();
+            DSA = DSA.Create();
+            DSA.ImportParameters(GetDSAParameters());
         }
-
-#pragma warning disable CA1859 // Use concrete types when possible for improved performance
-#pragma warning disable CA5384 // Do Not Use Digital Signature Algorithm (DSA)
-        private DSA LoadDSA()
-        {
-#if NETFRAMEWORK
-            // On .NET Framework we use the concrete CNG type which is FIPS-186-3
-            // compatible. The CryptoServiceProvider type returned by DSA.Create()
-            // is limited to FIPS-186-1 (max 1024 bit key).
-            var dsa = new DSACng();
-#else
-            var dsa = DSA.Create();
-#endif
-            dsa.ImportParameters(GetDSAParameters());
-
-            return dsa;
-        }
-#pragma warning restore CA5384 // Do Not Use Digital Signature Algorithm (DSA)
-#pragma warning restore CA1859 // Use concrete types when possible for improved performance
 
         internal DSAParameters GetDSAParameters()
         {

@@ -55,6 +55,11 @@ namespace Renci.SshNet.Security.Cryptography
         /// <exception cref="SshException">Invalid DSA key.</exception>
         public override byte[] Sign(byte[] input)
         {
+            if (_key.Q.BitLength != 160)
+            {
+                throw new SshException(string.Format("Length of Q parameter must be 160 bits for SSH-compatible signature (actual: {0}).", _key.Q.BitLength));
+            }
+
 #if NETSTANDARD2_1_OR_GREATER || NET
             return _key.DSA.SignData(input, HashAlgorithmName.SHA1);
 #else

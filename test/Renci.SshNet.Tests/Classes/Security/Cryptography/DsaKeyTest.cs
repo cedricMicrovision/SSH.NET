@@ -90,9 +90,12 @@ namespace Renci.SshNet.Tests.Classes.Security.Cryptography
          */
 
         [TestMethod]
-        public void Key_DSA() // (Pbits=3072, Qbits=256)
+        public void Key_DSA()
         {
             DsaKey dsaKey = GetDsaKey("Key.DSA.txt");
+
+            Assert.AreEqual(3072, dsaKey.P.BitLength);
+            Assert.AreEqual(256, dsaKey.Q.BitLength);
 
             DSAParameters p = dsaKey.GetDSAParameters();
 
@@ -104,9 +107,12 @@ namespace Renci.SshNet.Tests.Classes.Security.Cryptography
         }
 
         [TestMethod]
-        public void Key_SSH2_DSA_Encrypted_Des_Ede3_CBC_12345() // (Pbits=1024, Qbits=160)
+        public void Key_SSH2_DSA_Encrypted_Des_Ede3_CBC_12345()
         {
             DsaKey dsaKey = GetDsaKey("Key.SSH2.DSA.Encrypted.Des.Ede3.CBC.12345.txt", "12345");
+
+            Assert.AreEqual(1024, dsaKey.P.BitLength);
+            Assert.AreEqual(160, dsaKey.Q.BitLength);
 
             DSAParameters p = dsaKey.GetDSAParameters();
 
@@ -118,9 +124,12 @@ namespace Renci.SshNet.Tests.Classes.Security.Cryptography
         }
 
         [TestMethod]
-        public void Key_SSH2_DSA() // (Pbits=2048, Qbits=256)
+        public void Key_SSH2_DSA()
         {
             DsaKey dsaKey = GetDsaKey("Key.SSH2.DSA.txt");
+
+            Assert.AreEqual(2048, dsaKey.P.BitLength);
+            Assert.AreEqual(256, dsaKey.Q.BitLength);
 
             DSAParameters p = dsaKey.GetDSAParameters();
 

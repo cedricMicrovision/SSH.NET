@@ -97,6 +97,8 @@ namespace Renci.SshNet.Common
                 return correctlySized;
             }
 
+            Debug.Assert(target.Length == length);
+
             return target;
         }
 

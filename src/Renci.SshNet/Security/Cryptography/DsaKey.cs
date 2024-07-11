@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Diagnostics;
 using System.Security.Cryptography;
 
 using Renci.SshNet.Common;
@@ -171,6 +172,16 @@ namespace Renci.SshNet.Security
             // and https://github.com/dotnet/runtime/blob/fadd8313653f71abd0068c8bf914be88edb2c8d3/src/libraries/Common/src/System/Security/Cryptography/DSAKeyFormatHelper.cs#L18
             // (and similar code in RsaKey.cs)
 
+            // https://github.com/dotnet/runtime/pull/104646/files
+            Debug.Assert(P.Sign >= 0);
+            Debug.Assert(Q.Sign >= 0);
+            Debug.Assert(IsValidPLength(P.BitLength));
+            Debug.Assert(IsValidQLength(Q.BitLength));
+            Debug.Assert(G > 1);
+            Debug.Assert(G < P);
+            Debug.Assert(Y > 1);
+            Debug.Assert(Y < P);
+
             var ret = new DSAParameters
             {
                 P = P.ToByteArray(isUnsigned: true, isBigEndian: true),
@@ -182,10 +193,32 @@ namespace Renci.SshNet.Security
 
             if (!X.IsZero)
             {
+                Debug.Assert(X > 1);
+                Debug.Assert(X < Q);
                 ret.X = X.ExportKeyParameter(ret.Q.Length);
             }
 
             return ret;
+        }
+
+        private static bool IsValidPLength(long pBitLength)
+        {
+            return pBitLength switch
+            {
+                // FIPS 186-3/186-4
+                1024 or 2048 or 3072 => true,
+
+                // FIPS 186-1/186-2
+                >= 512 and < 1024 => pBitLength % 64 == 0,
+                _ => false,
+            };
+        }
+
+        private static bool IsValidQLength(long qBitLength)
+        {
+            // FIPS 186-1/186-2 only allows 160
+            // FIPS 186-3/186-4 allow 160/224/256
+            return qBitLength is 160 or 224 or 256;
         }
 
         /// <summary>

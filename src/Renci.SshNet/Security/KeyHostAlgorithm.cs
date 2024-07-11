@@ -73,7 +73,7 @@ namespace Renci.SshNet.Security
         /// </returns>
         public override byte[] Sign(byte[] data)
         {
-            return new SignatureKeyData(Name, DigitalSignature.Sign(data)).GetBytes();
+            return new SignatureKeyData(Key.ToString(), DigitalSignature.Sign(data)).GetBytes();
         }
 
         /// <summary>

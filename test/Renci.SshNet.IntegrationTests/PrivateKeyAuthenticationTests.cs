@@ -71,9 +71,31 @@ namespace Renci.SshNet.IntegrationTests
         }
 
         [TestMethod]
-        public void Ed25519CertRsa()
+        public void SshRsaCertificate()
         {
-            DoTest(PublicKeyAlgorithm.SshEd25519CertV01OpenSSH, "data.Key.OPENSSH.ED25519.txt", "data.Key.OPENSSH.ED25519-cert.OPENSSH.RSA.pub");
+            // ssh-keygen -L -f Key.OPENSSH.RSA-cert.pub
+            //    Type: ssh-rsa-cert-v01@openssh.com user certificate
+            //    Public key: RSA-CERT SHA256:Eakx9OK+zveFGPECEGY55TokNKde5GjfQkTHHT1PNfs
+            //    Signing CA: RSA SHA256:NqLEgdYti0XjUkYjGyQv2Ddy1O5v2NZDZFRtlfESLIA (using rsa-sha2-512)
+            // And we will authenticate (sign) with ssh-rsa (SHA-1)
+            DoTest(PublicKeyAlgorithm.SshRsaCertV01OpenSSH, "Data.Key.OPENSSH.RSA.txt", certificateResource: "Data.Key.OPENSSH.RSA-cert.pub");
+        }
+
+        [TestMethod]
+        public void SshRsaSha256Certificate()
+        {
+            // As above, but we will authenticate (sign) with rsa-sha2-256
+            DoTest(PublicKeyAlgorithm.RsaSha2256CertV01OpenSSH, "Data.Key.OPENSSH.RSA.txt", certificateResource: "Data.Key.OPENSSH.RSA-cert.pub");
+        }
+
+        [TestMethod]
+        public void Ed25519Certificate()
+        {
+            // ssh-keygen -L -f Key.OPENSSH.ED25519-cert.pub
+            //    Type: ssh-ed25519-cert-v01@openssh.com user certificate
+            //    Public key: ED25519-CERT SHA256:e9CGro9Y4buSpUIiLMlBPzHY/YrZZxTuMIryqFknXBI
+            //    Signing CA: ECDSA SHA256:r/t6I+bZQzN5BhSuntFSHDHlrnNHVM2lAo6gbvynG/4 (using ecdsa-sha2-nistp256)
+            DoTest(PublicKeyAlgorithm.SshEd25519CertV01OpenSSH, "Data.Key.OPENSSH.ED25519.txt", certificateResource: "Data.Key.OPENSSH.ED25519-cert.pub");
         }
 
         private void DoTest(PublicKeyAlgorithm publicKeyAlgorithm, string keyResource, string passPhrase = null, string certificateResource = null)

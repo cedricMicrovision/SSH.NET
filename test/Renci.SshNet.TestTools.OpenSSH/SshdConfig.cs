@@ -25,7 +25,6 @@ namespace Renci.SshNet.TestTools.OpenSSH
             KeyExchangeAlgorithms = new List<KeyExchangeAlgorithm>();
             PublicKeyAcceptedAlgorithms = new List<PublicKeyAlgorithm>();
             MessageAuthenticationCodeAlgorithms = new List<MessageAuthenticationCodeAlgorithm>();
-            TrustedUserCAKeys = new List<string>();
             Subsystems = new List<Subsystem>();
             Matches = new List<Match>();
             LogLevel = LogLevel.Info;
@@ -122,7 +121,7 @@ namespace Renci.SshNet.TestTools.OpenSSH
         /// <summary>
         /// Gets the filepaths of the trusted user CA (certificate authority) keys.
         /// </summary>
-        public List<string> TrustedUserCAKeys { get; private set; }
+        public string? TrustedUserCAKeys { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether <c>sshd</c> should print <c>/etc/motd</c> when a user logs in interactively.
@@ -312,9 +311,9 @@ namespace Renci.SshNet.TestTools.OpenSSH
                 writer.WriteLine("PubkeyAcceptedAlgorithms " + string.Join(",", PublicKeyAcceptedAlgorithms.Select(c => c.Name).ToArray()));
             }
 
-            if (TrustedUserCAKeys.Count > 0)
+            if (TrustedUserCAKeys is not null)
             {
-                writer.WriteLine("TrustedUserCAKeys " + string.Join(",", TrustedUserCAKeys));
+                writer.WriteLine("TrustedUserCAKeys " + TrustedUserCAKeys);
             }
 
             foreach (var match in Matches)
@@ -394,6 +393,9 @@ namespace Renci.SshNet.TestTools.OpenSSH
                     break;
                 case "AllowTcpForwarding":
                     sshdConfig.AllowTcpForwarding = ToBool(value);
+                    break;
+                case "TrustedUserCAKeys":
+                    sshdConfig.TrustedUserCAKeys = value;
                     break;
                 case "KeyRegenerationInterval":
                 case "HostbasedAuthentication":

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -225,23 +226,6 @@ namespace Renci.SshNet.Tests.Classes
             {
                 _ = new PrivateKeyFile(stream, "12345");
             }
-        }
-
-        [TestMethod]
-        [Owner("olegkap")]
-        [TestCategory("PrivateKey")]
-        public void XXX()
-        {
-            PrivateKeyFile p;
-
-            using (var privateKey = GetData("Key.RSA.txt"))
-            using (var certificate = GetData("Key.OPENSSH.ED25519-cert.pub"))
-            {
-                p = new PrivateKeyFile(privateKey, certificate: certificate);
-            }
-
-            var certSignatureData = new KeyHostAlgorithm.SignatureKeyData();
-            certSignatureData.Load(p.Certificate.Signature);
         }
 
         [TestMethod]
@@ -604,6 +588,49 @@ namespace Renci.SshNet.Tests.Classes
             {
                 _ = new PrivateKeyFile(stream, "12345");
             }
+        }
+
+        [TestMethod]
+        public void Test_Certificate_OPENSSH_RSA()
+        {
+            PrivateKeyFile pkFile;
+
+            using (var privateKey = GetData("Key.OPENSSH.RSA.txt"))
+            using (var certificate = GetData("Key.OPENSSH.RSA-cert.pub"))
+            {
+                pkFile = new PrivateKeyFile(privateKey, certificate: certificate);
+            }
+
+            Certificate cert = pkFile.Certificate;
+
+            // ssh-keygen -L -f Key.OPENSSH.RSA-cert.pub
+
+            Assert.AreEqual("ssh-rsa-cert-v01@openssh.com", cert.Name);
+            Assert.AreEqual(Certificate.CertificateType.User, cert.Type);
+            Assert.AreEqual("rsa-cert-rsa", cert.KeyId);
+            CollectionAssert.AreEqual(new string[] { "sshnet" }, cert.ValidPrincipals.ToList());
+            Assert.AreEqual(0, cert.CriticalOptions.Count);
+            Assert.IsTrue(cert.ValidAfter.EqualsExact(new DateTimeOffset(2024, 07, 17, 20, 50, 34, TimeSpan.Zero)), cert.ValidAfter.ToString("O"));
+            Assert.AreEqual(DateTimeOffset.MaxValue, cert.ValidBefore);
+            CollectionAssert.AreEqual(new Dictionary<string, string>
+            {
+                ["permit-X11-forwarding"] = "",
+                ["permit-agent-forwarding"] = "",
+                ["permit-port-forwarding"] = "",
+                ["permit-pty"] = "",
+                ["permit-user-rc"] = "",
+            }, new Dictionary<string, string>(cert.Extensions));
+
+            Assert.AreEqual(6, pkFile.HostKeyAlgorithms.Count);
+
+            var algorithms = pkFile.HostKeyAlgorithms.ToList();
+
+            Assert.AreEqual("rsa-sha2-512-cert-v01@openssh.com", algorithms[0].Name);
+            Assert.AreEqual("rsa-sha2-256-cert-v01@openssh.com", algorithms[1].Name);
+            Assert.AreEqual("ssh-rsa-cert-v01@openssh.com", algorithms[2].Name);
+            Assert.AreEqual("ssh-rsa", algorithms[3].Name);
+            Assert.AreEqual("rsa-sha2-512", algorithms[4].Name);
+            Assert.AreEqual("rsa-sha2-256", algorithms[5].Name);
         }
 
         private void SaveStreamToFile(Stream stream, string fileName)

@@ -66,19 +66,21 @@ namespace Renci.SshNet
     public partial class PrivateKeyFile : IPrivateKeySource, IDisposable
     {
         private const string PrivateKeyPattern = @"^-+ *BEGIN (?<keyName>\w+( \w+)*) PRIVATE KEY *-+\r?\n((Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: (?<cipherName>[A-Z0-9-]+),(?<salt>[A-F0-9]+)\r?\n\r?\n)|(Comment: ""?[^\r\n]*""?\r?\n))?(?<data>([a-zA-Z0-9/+=]{1,80}\r?\n)+)(\r?\n)?-+ *END \k<keyName> PRIVATE KEY *-+";
+        private const string CertificatePattern = @"(?<type>[-\w]+@openssh\.com)\s(?<data>([a-zA-Z0-9\/+=]*))\s+(?<comment>(.*))";
 
 #if NET7_0_OR_GREATER
         private static readonly Regex PrivateKeyRegex = GetPrivateKeyRegex();
+        private static readonly Regex CertificateRegex = GetCertificateRegex();
 
         [GeneratedRegex(PrivateKeyPattern, RegexOptions.Multiline | RegexOptions.ExplicitCapture)]
         private static partial Regex GetPrivateKeyRegex();
-#else
-        private static readonly Regex PrivateKeyRegex = new Regex(PrivateKeyPattern,
-                                                                  RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.ExplicitCapture);
-#endif
 
-        private static readonly Regex CertificateRegex = new Regex(@"(?<type>[-\w]+@openssh\.com)\s(?<data>([a-zA-Z0-9\/+=]*))\s+(?<comment>(.*))",
-            RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+        [GeneratedRegex(CertificatePattern, RegexOptions.ExplicitCapture)]
+        private static partial Regex GetCertificateRegex();
+#else
+        private static readonly Regex PrivateKeyRegex = new Regex(PrivateKeyPattern, RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.ExplicitCapture);
+        private static readonly Regex CertificateRegex = new Regex(CertificatePattern, RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+#endif
 
         private readonly List<HostAlgorithm> _hostAlgorithms = new List<HostAlgorithm>();
         private Key _key;
@@ -675,27 +677,25 @@ namespace Renci.SshNet
                 Debug.Assert(Certificate.Key is RsaKey,
                     $"Expected {nameof(Certificate)}.{nameof(Certificate.Key)} to be {nameof(RsaKey)} but was {Certificate.Key?.GetType()}");
 
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                _hostAlgorithms.Add(new CertificateHostAlgorithm(
-                    "rsa-sha2-512-cert-v01@openssh.com",
-                    Key,
-                    Certificate,
-                    new RsaDigitalSignature(rsaKey, HashAlgorithmName.SHA512)));
+                _hostAlgorithms.Insert(0, new CertificateHostAlgorithm("ssh-rsa-cert-v01@openssh.com", Key, Certificate));
 
-                _hostAlgorithms.Add(new CertificateHostAlgorithm(
+#pragma warning disable CA2000 // Dispose objects before losing scope
+                _hostAlgorithms.Insert(0, new CertificateHostAlgorithm(
                     "rsa-sha2-256-cert-v01@openssh.com",
                     Key,
                     Certificate,
                     new RsaDigitalSignature(rsaKey, HashAlgorithmName.SHA256)));
+
+                _hostAlgorithms.Insert(0, new CertificateHostAlgorithm(
+                    "rsa-sha2-512-cert-v01@openssh.com",
+                    Key,
+                    Certificate,
+                    new RsaDigitalSignature(rsaKey, HashAlgorithmName.SHA512)));
 #pragma warning restore CA2000 // Dispose objects before losing scope
-
-                Debug.Assert(Certificate.Name == "ssh-rsa-cert-v01@openssh.com");
-
-                _hostAlgorithms.Add(new CertificateHostAlgorithm("ssh-rsa-cert-v01@openssh.com", Key, Certificate));
             }
             else
             {
-                _hostAlgorithms.Add(new CertificateHostAlgorithm(Certificate.Name, Key, Certificate));
+                _hostAlgorithms.Insert(0, new CertificateHostAlgorithm(Certificate.Name, Key, Certificate));
             }
         }
 

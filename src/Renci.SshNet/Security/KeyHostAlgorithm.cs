@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using System.Text.RegularExpressions;
 
 using Renci.SshNet.Common;
 using Renci.SshNet.Security.Cryptography;
@@ -74,9 +73,7 @@ namespace Renci.SshNet.Security
         /// </returns>
         public override byte[] Sign(byte[] data)
         {
-            var algorithmName = Regex.Match(Name, "-cert-v[0-9]{2}@openssh.com").Success ? Name.Substring(0, Name.Length - 21) : Name;
-
-            return new SignatureKeyData(algorithmName, DigitalSignature.Sign(data)).GetBytes();
+            return new SignatureKeyData(Name, DigitalSignature.Sign(data)).GetBytes();
         }
 
         /// <summary>

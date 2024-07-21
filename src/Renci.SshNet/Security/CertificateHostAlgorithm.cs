@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Diagnostics;
 
 using Renci.SshNet.Security.Cryptography;
 
@@ -80,6 +81,18 @@ namespace Renci.SshNet.Security
         {
             Certificate = certificate;
             _connectionInfo = connectionInfo;
+        }
+
+        /// <inheritdoc/>
+        public override byte[] Sign(byte[] data)
+        {
+            Debug.Assert("-cert-v01@openssh.com".Length == 21);
+
+            var signatureFormatIdentifier = Name.EndsWith("-cert-v01@openssh.com", StringComparison.Ordinal)
+                ? Name.Substring(0, Name.Length - 21)
+                : Name;
+
+            return new SignatureKeyData(signatureFormatIdentifier, DigitalSignature.Sign(data)).GetBytes();
         }
 
         /// <summary>
